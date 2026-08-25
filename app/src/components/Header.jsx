@@ -1,4 +1,5 @@
-import { LunaLogo, QuestionIcon } from './Icons'
+import { QuestionIcon } from './Icons'
+import lunaLogo from '../assets/luna-logo.png'
 
 const STEPS = [
   'Account verification',
@@ -11,8 +12,7 @@ export default function Header({ currentStep = 1 }) {
   return (
     <header className="header">
       <a href="#" className="logo">
-        <LunaLogo />
-        Luna
+        <img src={lunaLogo} alt="Luna" height="36" />
       </a>
 
       <nav className="stepper" aria-label="Onboarding progress">
