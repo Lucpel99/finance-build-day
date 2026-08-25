@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Header from './components/Header'
 import ConnectionRow from './components/ConnectionRow'
 import SkipDialog from './components/SkipDialog'
@@ -7,13 +7,25 @@ import WelcomeStep from './steps/WelcomeStep'
 import CompanyStep from './steps/CompanyStep'
 import FinancialStep from './steps/FinancialStep'
 import RiskReviewPage from './views/RiskReviewPage'
+import MatchingPage from './views/MatchingPage'
 
 const TYPES = ['bank', 'accounting']
 
+function getView() {
+  const h = window.location.hash
+  if (h === '#risk')  return 'risk'
+  if (h === '#match') return 'match'
+  return 'onboarding'
+}
+
 export default function App() {
-  const [view] = useState(() =>
-    window.location.hash === '#risk' ? 'risk' : 'onboarding'
-  )
+  const [view, setView] = useState(getView)
+
+  useEffect(() => {
+    const onHash = () => setView(getView())
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
   const [step, setStep] = useState(1)
   const [connections, setConnections] = useState({ bank: 'idle', accounting: 'idle' })
   const [showSkipDialog, setShowSkipDialog] = useState(false)
@@ -39,8 +51,9 @@ export default function App() {
     setConnections({ bank: 'idle', accounting: 'idle' })
   }
 
-  // ── Risk agent review (accessed via /#risk) ──────────────
-  if (view === 'risk') return <RiskReviewPage />
+  // ── Risk agent views (hash-routed) ───────────────────────
+  if (view === 'risk')  return <RiskReviewPage />
+  if (view === 'match') return <MatchingPage />
 
   // ── Step 1: Welcome ──────────────────────────────────────
   if (step === 1) {

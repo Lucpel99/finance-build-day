@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import lunaLogo from '../assets/luna-logo.png'
+import negativeResult from '../assets/negative-result.png'
 import { BankIcon, GridIcon, CheckCircle, WarningIcon } from '../components/Icons'
 
 const DEFAULT_CLAIMED = { yearly_revenue: 4500000, avg_transaction: 350, max_transaction: 5000 }
@@ -61,7 +62,7 @@ export default function RiskReviewPage() {
   const attentionCount = comparison ? comparison.filter(r => r.status === 'mismatch').length : 0
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', position: 'relative' }}>
       {/* Risk-specific header */}
       <header className="risk-header">
         <a href="#" className="logo" style={{ textDecoration: 'none' }}>
@@ -195,11 +196,34 @@ export default function RiskReviewPage() {
 
         <div className="inline-actions" style={{ marginTop: 32 }}>
           <button className="btn-secondary">Request clarification</button>
-          <button className="btn-continue" disabled={loading || !!error}>
-            Approve application
-          </button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {attentionCount > 0 && !loading && !error && (
+              <a href="#match" className="btn-secondary" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 7 }}>
+                Investigate matching →
+              </a>
+            )}
+            <button className="btn-continue" disabled={loading || !!error}>
+              Approve application
+            </button>
+          </div>
         </div>
       </main>
+
+      {attentionCount > 0 && !loading && (
+        <img
+          src={negativeResult}
+          alt="Negative result indicator"
+          style={{
+            position: 'fixed',
+            right: -30,
+            bottom: 24,
+            width: 340,
+            pointerEvents: 'none',
+            userSelect: 'none',
+            animation: 'fadeSlideIn 0.4s ease forwards',
+          }}
+        />
+      )}
     </div>
   )
 }
