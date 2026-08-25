@@ -44,14 +44,13 @@ export default function App() {
               <span className="pill"><span>✦</span> No documents needed</span>
               <span className="pill"><span>⚡</span> Decision in seconds</span>
             </div>
+            <div className="inline-actions" style={{ justifyContent: 'flex-end' }}>
+              <button className="btn-continue" onClick={() => { setOutcome(null); setConnections({ bank: 'idle', accounting: 'idle' }) }}>
+                <MoonIcon size={16} /> Start over (demo)
+              </button>
+            </div>
           </div>
         </main>
-        <footer className="footer">
-          <span />
-          <button className="btn-continue" onClick={() => { setOutcome(null); setConnections({ bank: 'idle', accounting: 'idle' }) }}>
-            <MoonIcon size={16} /> Start over (demo)
-          </button>
-        </footer>
       </div>
     )
   }
@@ -70,14 +69,13 @@ export default function App() {
               You'll be asked to upload bank statements and financial documents in
               the next steps. Processing typically takes 3–5 business days.
             </p>
+            <div className="inline-actions" style={{ justifyContent: 'flex-end' }}>
+              <button className="btn-continue" onClick={() => { setOutcome(null); setConnections({ bank: 'idle', accounting: 'idle' }) }}>
+                <MoonIcon size={16} /> Start over (demo)
+              </button>
+            </div>
           </div>
         </main>
-        <footer className="footer">
-          <span />
-          <button className="btn-continue" onClick={() => { setOutcome(null); setConnections({ bank: 'idle', accounting: 'idle' }) }}>
-            <MoonIcon size={16} /> Start over (demo)
-          </button>
-        </footer>
       </div>
     )
   }
@@ -149,21 +147,21 @@ export default function App() {
             ))}
           </div>
         )}
-      </main>
 
-      <footer className="footer">
-        <button className="skip-link" onClick={() => setShowSkipDialog(true)}>
-          Skip automatic account verification
-        </button>
-        <button
-          className="btn-continue"
-          disabled={!bothConnected}
-          onClick={() => setOutcome('fast-lane')}
-        >
-          <MoonIcon size={16} />
-          Continue
-        </button>
-      </footer>
+        <div className="inline-actions">
+          <button className="skip-link" onClick={() => setShowSkipDialog(true)}>
+            Skip automatic account verification
+          </button>
+          <button
+            className="btn-continue"
+            disabled={!bothConnected}
+            onClick={() => setOutcome('fast-lane')}
+          >
+            <MoonIcon size={16} />
+            Continue
+          </button>
+        </div>
+      </main>
 
       {showSkipDialog && (
         <SkipDialog
