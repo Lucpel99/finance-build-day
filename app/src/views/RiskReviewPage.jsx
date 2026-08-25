@@ -1,37 +1,8 @@
+import { useState, useEffect } from 'react'
 import lunaLogo from '../assets/luna-logo.png'
 import { BankIcon, GridIcon, CheckCircle, WarningIcon } from '../components/Icons'
 
-const MOCK_DATA = [
-  {
-    id: 'yearly_revenue',
-    label: 'Estimated yearly revenue',
-    status: 'close_match',
-    statusLabel: 'Close match',
-    userInput:   '4 500 000 SEK',
-    openBanking: '4 820 000 SEK',
-    accounting:  '4 610 000 SEK',
-  },
-  {
-    id: 'avg_tx',
-    label: 'Avg. transaction value',
-    status: 'match',
-    statusLabel: 'Exact match',
-    userInput:   '350 SEK',
-    openBanking: '328 SEK',
-    accounting:  '361 SEK',
-  },
-  {
-    id: 'max_tx',
-    label: 'Max. transaction value',
-    status: 'mismatch',
-    statusLabel: 'Needs review',
-    userInput:   '5 000 SEK',
-    openBanking: '12 400 SEK',
-    accounting:  '4 200 SEK',
-  },
-]
-
-const attentionCount = MOCK_DATA.filter(d => d.status === 'mismatch').length
+const DEFAULT_CLAIMED = { yearly_revenue: 4500000, avg_transaction: 350, max_transaction: 5000 }
 
 function UserPersonIcon() {
   return (
@@ -66,6 +37,29 @@ function StatusIcon({ status }) {
 }
 
 export default function RiskReviewPage() {
+  const [comparison, setComparison] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    let claimed = DEFAULT_CLAIMED
+    try {
+      const raw = localStorage.getItem('luna_claimed')
+      if (raw) claimed = JSON.parse(raw)
+    } catch (_) {}
+
+    fetch('http://localhost:8000/api/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(claimed),
+    })
+      .then(r => { if (!r.ok) throw new Error(`Server returned ${r.status}`); return r.json() })
+      .then(json => { setComparison(json.comparison); setLoading(false) })
+      .catch(err => { setError(err.message); setLoading(false) })
+  }, [])
+
+  const attentionCount = comparison ? comparison.filter(r => r.status === 'mismatch').length : 0
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       {/* Risk-specific header */}
@@ -107,84 +101,103 @@ export default function RiskReviewPage() {
             <span className="risk-stat-icon"><WarningIcon size={16} /></span>
             <div>
               <div className="risk-stat-label">Review status</div>
-              <div className={`risk-stat-value ${attentionCount > 0 ? 'warn' : 'ok'}`}>
-                {attentionCount > 0 ? `${attentionCount} item needs attention` : 'All clear'}
-              </div>
+              {loading ? (
+                <div className="risk-stat-value" style={{ color: 'var(--muted)' }}>Loading…</div>
+              ) : error ? (
+                <div className="risk-stat-value warn">Error</div>
+              ) : (
+                <div className={`risk-stat-value ${attentionCount > 0 ? 'warn' : 'ok'}`}>
+                  {attentionCount > 0 ? `${attentionCount} item${attentionCount > 1 ? 's' : ''} need attention` : 'All clear'}
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Comparison table */}
-        <div className="risk-table-wrap">
-          <table className="risk-table">
-            <thead>
-              <tr className="risk-table-head">
-                <th className="risk-th info-col">Information</th>
-                <th className="risk-th data-col">
-                  <span className="risk-col-icon">
-                    <UserPersonIcon />
-                    User input
-                  </span>
-                </th>
-                <th className="risk-th data-col">
-                  <span className="risk-col-icon">
-                    <BankIcon color="var(--muted)" />
-                    Open banking
-                  </span>
-                </th>
-                <th className="risk-th data-col">
-                  <span className="risk-col-icon">
-                    <GridIcon color="var(--muted)" />
-                    Open accounting
-                  </span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {MOCK_DATA.map((row, i) => (
-                <tr key={row.id} className={`risk-tr${row.status === 'mismatch' ? ' mismatch' : ''}`}>
-                  <td className="risk-td info-col">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span className="risk-row-num">{i + 1}</span>
-                      <div>
-                        <div className="risk-row-label">{row.label}</div>
-                        <div className={`risk-row-status ${row.status === 'mismatch' ? 'warn' : 'ok'}`}>
-                          {row.statusLabel}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="risk-td">
-                    <div className="risk-cell-value">
-                      <span className="risk-value-text">{row.userInput}</span>
-                      <StatusIcon status={row.status} />
-                    </div>
-                  </td>
-                  <td className="risk-td">
-                    <div className="risk-cell-value">
-                      <span className="risk-value-text">{row.openBanking}</span>
-                      <StatusIcon status={row.status} />
-                    </div>
-                  </td>
-                  <td className="risk-td">
-                    <div className="risk-cell-value">
-                      <span className="risk-value-text">{row.accounting}</span>
-                      <StatusIcon status={row.status} />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {/* Loading */}
+        {loading && (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '64px 0' }}>
+            <div className="spinner" style={{ width: 36, height: 36, borderWidth: 3 }} />
+          </div>
+        )}
 
-        <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 16 }}>
-          Accounting and banking data were retrieved automatically on Aug 25, 2026 at 09:11.
-        </p>
+        {/* Error */}
+        {error && !loading && (
+          <div style={{ padding: '32px', background: 'var(--cloud-white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-card)', color: 'var(--muted)', textAlign: 'center' }}>
+            <p style={{ fontWeight: 600, color: 'var(--danger)', marginBottom: 8 }}>Could not load verification data</p>
+            <p style={{ fontSize: 13 }}>{error}</p>
+            <p style={{ fontSize: 12, marginTop: 12 }}>Make sure the API server is running: <code>uvicorn src.api.server:app --reload --port 8000</code></p>
+          </div>
+        )}
+
+        {/* Comparison table */}
+        {comparison && !loading && (
+          <>
+            <div className="risk-table-wrap">
+              <table className="risk-table">
+                <thead>
+                  <tr className="risk-table-head">
+                    <th className="risk-th info-col">Information</th>
+                    <th className="risk-th data-col">
+                      <span className="risk-col-icon"><UserPersonIcon />User input</span>
+                    </th>
+                    <th className="risk-th data-col">
+                      <span className="risk-col-icon"><BankIcon color="var(--muted)" />Open banking</span>
+                    </th>
+                    <th className="risk-th data-col">
+                      <span className="risk-col-icon"><GridIcon color="var(--muted)" />Open accounting</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {comparison.map((row, i) => (
+                    <tr key={row.id} className={`risk-tr${row.status === 'mismatch' ? ' mismatch' : ''}`}>
+                      <td className="risk-td info-col">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span className="risk-row-num">{i + 1}</span>
+                          <div>
+                            <div className="risk-row-label">{row.label}</div>
+                            <div className={`risk-row-status ${row.status === 'mismatch' ? 'warn' : 'ok'}`}>
+                              {row.statusLabel}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="risk-td">
+                        <div className="risk-cell-value">
+                          <span className="risk-value-text">{row.userInput}</span>
+                          <StatusIcon status={row.status} />
+                        </div>
+                      </td>
+                      <td className="risk-td">
+                        <div className="risk-cell-value">
+                          <span className="risk-value-text">{row.openBanking}</span>
+                          <StatusIcon status={row.status} />
+                        </div>
+                      </td>
+                      <td className="risk-td">
+                        <div className="risk-cell-value">
+                          <span className="risk-value-text">{row.accounting}</span>
+                          <StatusIcon status={row.status} />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 16 }}>
+              Accounting and banking data were retrieved automatically. Data reflects the last 365 days.
+            </p>
+          </>
+        )}
 
         <div className="inline-actions" style={{ marginTop: 32 }}>
           <button className="btn-secondary">Request clarification</button>
-          <button className="btn-continue">Approve application</button>
+          <button className="btn-continue" disabled={loading || !!error}>
+            Approve application
+          </button>
         </div>
       </main>
     </div>
