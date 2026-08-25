@@ -86,7 +86,14 @@ export default function FinancialStep({ onContinue, onBack }) {
 
         <div className="inline-actions">
           <button className="skip-link" onClick={onBack}>← Back</button>
-          <button className="btn-continue" onClick={onContinue}>
+          <button className="btn-continue" onClick={() => {
+            localStorage.setItem('luna_claimed', JSON.stringify({
+              yearly_revenue: revenue,
+              avg_transaction: Number(avgTx),
+              max_transaction: Number(maxTx),
+            }))
+            onContinue()
+          }}>
             Continue
           </button>
         </div>
