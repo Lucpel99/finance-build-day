@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import Header from './components/Header'
 import ConnectionRow from './components/ConnectionRow'
 import SkipDialog from './components/SkipDialog'
-import { MoonIcon, SparkleIcon, BigCheckIcon, WarningIcon } from './components/Icons'
+import { SparkleIcon, BigCheckIcon, WarningIcon } from './components/Icons'
 
 const TYPES = ['bank', 'accounting']
 
@@ -46,7 +46,7 @@ export default function App() {
             </div>
             <div className="inline-actions" style={{ justifyContent: 'flex-end' }}>
               <button className="btn-continue" onClick={() => { setOutcome(null); setConnections({ bank: 'idle', accounting: 'idle' }) }}>
-                <MoonIcon size={16} /> Start over (demo)
+                Start over (demo)
               </button>
             </div>
           </div>
@@ -71,7 +71,7 @@ export default function App() {
             </p>
             <div className="inline-actions" style={{ justifyContent: 'flex-end' }}>
               <button className="btn-continue" onClick={() => { setOutcome(null); setConnections({ bank: 'idle', accounting: 'idle' }) }}>
-                <MoonIcon size={16} /> Start over (demo)
+                Start over (demo)
               </button>
             </div>
           </div>
@@ -157,7 +157,6 @@ export default function App() {
             disabled={!bothConnected}
             onClick={() => setOutcome('fast-lane')}
           >
-            <MoonIcon size={16} />
             Continue
           </button>
         </div>
