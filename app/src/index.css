@@ -519,3 +519,221 @@ body {
 .outcome-icon.warning { background: var(--lunar-cream); }
 
 .outcome h1 { margin-bottom: 12px; }
+
+/* ── Welcome screen ─────────────────────────────────────── */
+.welcome-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-moon {
+  width: 520px;
+  height: 520px;
+  opacity: 0.32;
+}
+
+.welcome-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 520px;
+  padding: 40px 24px;
+  animation: fadeSlideIn 0.5s ease forwards;
+}
+
+.welcome-logo {
+  height: 72px;
+  margin-bottom: 36px;
+}
+
+.welcome-title {
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--deep-slate);
+  letter-spacing: -1px;
+  line-height: 1.1;
+  margin-bottom: 16px;
+}
+
+.welcome-subtitle {
+  font-size: 17px;
+  color: var(--muted);
+  line-height: 1.65;
+  margin-bottom: 28px;
+}
+
+.welcome-pills {
+  gap: 8px;
+  margin-bottom: 36px;
+}
+
+.welcome-cta {
+  padding: 16px 48px;
+  font-size: 16px;
+}
+
+/* ── Company profile card ───────────────────────────────── */
+.company-row {
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.company-row.last {
+  border-bottom: none;
+}
+
+.company-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.company-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--deep-slate);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--success);
+}
+
+/* ── Financial form ─────────────────────────────────────── */
+.financial-form {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 26px 22px;
+}
+
+.financial-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0 -22px;
+}
+
+.financial-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.financial-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 0 14px;
+  background: var(--cloud-white);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input-wrapper:focus-within {
+  border-color: var(--moon-yellow);
+  box-shadow: 0 0 0 3px rgba(244, 208, 78, 0.18);
+}
+
+.financial-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--deep-slate);
+  background: transparent;
+  padding: 13px 0;
+  -moz-appearance: textfield;
+}
+
+.financial-input::-webkit-outer-spin-button,
+.financial-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+.input-suffix {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  pointer-events: none;
+  margin-left: 8px;
+}
+
+/* ── Revenue slider ─────────────────────────────────────── */
+.revenue-slider-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--moon-yellow);
+  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+}
+
+.revenue-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+  transition: background 0s;
+}
+
+.revenue-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--moon-yellow);
+  cursor: pointer;
+  border: 3px solid white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+  transition: transform 0.1s;
+}
+
+.revenue-slider::-webkit-slider-thumb:hover { transform: scale(1.12); }
+
+.revenue-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--moon-yellow);
+  cursor: pointer;
+  border: 3px solid white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+}
+
+.slider-bounds {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 6px;
+}

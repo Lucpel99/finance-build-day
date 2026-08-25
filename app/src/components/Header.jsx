@@ -2,9 +2,9 @@ import { QuestionIcon } from './Icons'
 import lunaLogo from '../assets/luna-logo.png'
 
 const STEPS = [
+  'Business profile',
+  'Financial details',
   'Account verification',
-  'Business details',
-  'Risk assessment',
   'Review & submit',
 ]
 

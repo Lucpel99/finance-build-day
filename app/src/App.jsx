@@ -3,10 +3,14 @@ import Header from './components/Header'
 import ConnectionRow from './components/ConnectionRow'
 import SkipDialog from './components/SkipDialog'
 import { SparkleIcon, BigCheckIcon, WarningIcon } from './components/Icons'
+import WelcomeStep from './steps/WelcomeStep'
+import CompanyStep from './steps/CompanyStep'
+import FinancialStep from './steps/FinancialStep'
 
 const TYPES = ['bank', 'accounting']
 
 export default function App() {
+  const [step, setStep] = useState(1)
   const [connections, setConnections] = useState({ bank: 'idle', accounting: 'idle' })
   const [showSkipDialog, setShowSkipDialog] = useState(false)
   const [outcome, setOutcome] = useState(null) // null | 'fast-lane' | 'manual'
@@ -22,14 +26,35 @@ export default function App() {
   }, [])
 
   const bothConnected = connections.bank === 'connected' && connections.accounting === 'connected'
-
   const pendingTypes   = TYPES.filter(t => connections[t] !== 'connected')
   const connectedTypes = TYPES.filter(t => connections[t] === 'connected')
 
+  const resetDemo = () => {
+    setStep(1)
+    setOutcome(null)
+    setConnections({ bank: 'idle', accounting: 'idle' })
+  }
+
+  // ── Step 1: Welcome ──────────────────────────────────────
+  if (step === 1) {
+    return <WelcomeStep onContinue={() => setStep(2)} />
+  }
+
+  // ── Step 2: Business profile ─────────────────────────────
+  if (step === 2) {
+    return <CompanyStep onContinue={() => setStep(3)} />
+  }
+
+  // ── Step 3: Financial details ────────────────────────────
+  if (step === 3) {
+    return <FinancialStep onContinue={() => setStep(4)} onBack={() => setStep(2)} />
+  }
+
+  // ── Step 4: Outcomes ─────────────────────────────────────
   if (outcome === 'fast-lane') {
     return (
       <div className="page-wrapper">
-        <Header />
+        <Header currentStep={3} />
         <main className="main">
           <div className="outcome">
             <div className="outcome-icon success">
@@ -45,7 +70,7 @@ export default function App() {
               <span className="pill"><span>⚡</span> Decision in seconds</span>
             </div>
             <div className="inline-actions" style={{ justifyContent: 'flex-end' }}>
-              <button className="btn-continue" onClick={() => { setOutcome(null); setConnections({ bank: 'idle', accounting: 'idle' }) }}>
+              <button className="btn-continue" onClick={resetDemo}>
                 Start over (demo)
               </button>
             </div>
@@ -58,7 +83,7 @@ export default function App() {
   if (outcome === 'manual') {
     return (
       <div className="page-wrapper">
-        <Header />
+        <Header currentStep={3} />
         <main className="main">
           <div className="outcome">
             <div className="outcome-icon warning">
@@ -70,7 +95,7 @@ export default function App() {
               the next steps. Processing typically takes 3–5 business days.
             </p>
             <div className="inline-actions" style={{ justifyContent: 'flex-end' }}>
-              <button className="btn-continue" onClick={() => { setOutcome(null); setConnections({ bank: 'idle', accounting: 'idle' }) }}>
+              <button className="btn-continue" onClick={resetDemo}>
                 Start over (demo)
               </button>
             </div>
@@ -80,9 +105,9 @@ export default function App() {
     )
   }
 
+  // ── Step 4: Account verification ─────────────────────────
   return (
     <div className="page-wrapper">
-      {/* Background decorations */}
       <div className="bg-moon">
         <svg viewBox="0 0 200 200" fill="none">
           <path
@@ -103,7 +128,7 @@ export default function App() {
       <span className="sparkle sparkle-3"><SparkleIcon /></span>
       <span className="sparkle sparkle-4"><SparkleIcon /></span>
 
-      <Header />
+      <Header currentStep={3} />
 
       <main className="main">
         <h1 className="page-title">Automatic account verification</h1>
@@ -118,7 +143,6 @@ export default function App() {
           <span className="pill"><span>⚡</span> Faster approval</span>
         </div>
 
-        {/* Connect your accounts card */}
         {pendingTypes.length > 0 && (
           <div className="card">
             <p className="card-label">Connect your accounts</p>
@@ -135,7 +159,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Connected accounts card */}
         {connectedTypes.length > 0 && (
           <div className="card fade-in">
             <p className="card-label">Connected accounts</p>
