@@ -6,10 +6,14 @@ import { SparkleIcon, BigCheckIcon, WarningIcon } from './components/Icons'
 import WelcomeStep from './steps/WelcomeStep'
 import CompanyStep from './steps/CompanyStep'
 import FinancialStep from './steps/FinancialStep'
+import RiskReviewPage from './views/RiskReviewPage'
 
 const TYPES = ['bank', 'accounting']
 
 export default function App() {
+  const [view] = useState(() =>
+    window.location.hash === '#risk' ? 'risk' : 'onboarding'
+  )
   const [step, setStep] = useState(1)
   const [connections, setConnections] = useState({ bank: 'idle', accounting: 'idle' })
   const [showSkipDialog, setShowSkipDialog] = useState(false)
@@ -34,6 +38,9 @@ export default function App() {
     setOutcome(null)
     setConnections({ bank: 'idle', accounting: 'idle' })
   }
+
+  // ── Risk agent review (accessed via /#risk) ──────────────
+  if (view === 'risk') return <RiskReviewPage />
 
   // ── Step 1: Welcome ──────────────────────────────────────
   if (step === 1) {

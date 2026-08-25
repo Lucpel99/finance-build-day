@@ -425,40 +425,24 @@ body {
   line-height: 1.6;
 }
 
-.modal-list {
-  list-style: none;
-  margin: 10px 0 16px;
+.modal-badges {
   display: flex;
-  flex-direction: column;
   gap: 8px;
+  margin-top: 18px;
+  flex-wrap: wrap;
 }
 
-.modal-list li {
-  display: flex;
+.modal-badge {
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  color: var(--deep-slate);
-}
-
-.modal-list li::before {
-  content: '';
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--moon-yellow);
-  flex-shrink: 0;
-}
-
-.modal-note {
-  margin-top: 14px !important;
-  font-size: 13px !important;
-  background: var(--lunar-cream);
-  border-radius: 10px;
-  padding: 12px 14px;
-  color: var(--deep-slate) !important;
-  line-height: 1.5 !important;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 7px 14px;
 }
 
 .modal-actions {
@@ -736,4 +720,177 @@ body {
   font-size: 11px;
   color: var(--muted);
   margin-top: 6px;
+}
+
+/* ── Risk Agent Review Page ─────────────────────────────── */
+.risk-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 40px;
+  background: var(--cloud-white);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.risk-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.risk-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--deep-slate);
+  color: var(--cloud-white);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.risk-main {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+}
+
+.risk-summary-bar {
+  display: flex;
+  gap: 10px;
+  margin: 28px 0 36px;
+  flex-wrap: wrap;
+}
+
+.risk-stat-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--cloud-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 10px 18px;
+}
+
+.risk-stat-icon {
+  color: var(--muted);
+  display: flex;
+  flex-shrink: 0;
+}
+
+.risk-stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  line-height: 1;
+  margin-bottom: 3px;
+}
+
+.risk-stat-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--deep-slate);
+  line-height: 1;
+}
+.risk-stat-value.warn { color: #D97706; }
+.risk-stat-value.ok   { color: var(--success); }
+
+.risk-table-wrap {
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border);
+}
+
+.risk-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--cloud-white);
+}
+
+.risk-table-head {
+  background: #F9F8F4;
+  border-bottom: 1px solid var(--border);
+}
+
+.risk-th {
+  padding: 14px 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.risk-th.info-col { width: 280px; }
+
+.risk-col-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.risk-tr {
+  border-bottom: 1px solid var(--border);
+}
+.risk-tr:last-child { border-bottom: none; }
+.risk-tr.mismatch   { border-left: 3px solid var(--moon-yellow); }
+
+.risk-td {
+  padding: 18px 20px;
+  vertical-align: middle;
+}
+
+.risk-row-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--moon-yellow);
+  color: var(--deep-slate);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.risk-row-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--deep-slate);
+  margin-bottom: 3px;
+}
+
+.risk-row-status {
+  font-size: 12px;
+  font-weight: 500;
+}
+.risk-row-status.ok   { color: var(--success); }
+.risk-row-status.warn { color: #D97706; }
+
+.risk-cell-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.risk-value-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--deep-slate);
 }
