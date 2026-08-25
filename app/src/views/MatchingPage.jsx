@@ -168,10 +168,72 @@ export default function MatchingPage() {
       .catch(err => { setError(err.message); setLoading(false) })
   }, [])
 
-  const txs  = (data?.bank_transactions || []).filter(r => r.counterparty?.toLowerCase().includes(txSearch.toLowerCase()) || r.description?.toLowerCase().includes(txSearch.toLowerCase()))
-  const invs = (data?.invoices || []).filter(r => r.counterparty?.toLowerCase().includes(invSearch.toLowerCase()) || (r.invoice_reference || '').toLowerCase().includes(invSearch.toLowerCase()))
-  const summary = data?.summary || {}
+  const allTxs  = data?.bank_transactions || []
+  const allInvs = data?.invoices || []
+  const summary  = data?.summary || {}
   const noMatches = !loading && !error && summary.matched === 0
+
+  const hasUnmatchedTx = allTxs.some(t => t.status === 'unmatched')
+
+  // Unified row ordering: matched pairs → unmatched invoices → unmatched transactions
+  const matchedPairs = allInvs
+    .filter(inv => inv.status === 'matched')
+    .map(inv => ({ key: inv.book_id, inv, tx: allTxs.find(t => t.tx_id === inv.matched_tx_id) || null }))
+  const unmatchedInvRows = allInvs
+    .filter(inv => inv.status !== 'matched')
+    .map(inv => ({ key: inv.book_id, inv, tx: null }))
+  const matchedTxIds = new Set(matchedPairs.map(p => p.tx?.tx_id).filter(Boolean))
+  const unmatchedTxRows = allTxs
+    .filter(tx => !matchedTxIds.has(tx.tx_id))
+    .map(tx => ({ key: tx.tx_id, inv: null, tx }))
+  const unifiedRows = [...matchedPairs, ...unmatchedInvRows, ...unmatchedTxRows]
+
+  const il = invSearch.toLowerCase()
+  const tl = txSearch.toLowerCase()
+  const filteredUnifiedRows = unifiedRows.filter(r => {
+    if (il) {
+      if (!r.inv) return false
+      if (!(r.inv.counterparty?.toLowerCase().includes(il) || (r.inv.invoice_reference || '').toLowerCase().includes(il))) return false
+    }
+    if (tl) {
+      if (!r.tx) return false
+      if (!(r.tx.counterparty?.toLowerCase().includes(tl) || r.tx.description?.toLowerCase().includes(tl))) return false
+    }
+    return true
+  })
+
+  function injectMockInvoice() {
+    const tx = (data?.bank_transactions || []).find(t => t.status === 'unmatched')
+    if (!tx) return
+    const num = Math.floor(Math.random() * 9000) + 1000
+    const mockBookId = `MOCK-INV-${num}`
+    const mockInvoice = {
+      book_id:           mockBookId,
+      invoice_reference: `INV-${num}`,
+      date:              tx.date,
+      counterparty:      tx.counterparty,
+      amount:            tx.amount,
+      currency:          tx.currency,
+      direction:         tx.direction,
+      status:            'matched',
+      matched_tx_id:     tx.tx_id,
+      days_apart:        0,
+    }
+    setData(prev => ({
+      ...prev,
+      bank_transactions: prev.bank_transactions.map(t =>
+        t.tx_id === tx.tx_id
+          ? { ...t, status: 'matched', matched_book_id: mockBookId, days_apart: 0 }
+          : t
+      ),
+      invoices: [mockInvoice, ...(prev.invoices || [])],
+      summary: {
+        ...prev.summary,
+        matched:  (prev.summary?.matched  || 0) + 1,
+        eligible: (prev.summary?.eligible || 0) + 1,
+      },
+    }))
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
@@ -249,61 +311,13 @@ export default function MatchingPage() {
           </div>
         ) : (
           <div className="match-panels">
-            {/* Bank transactions */}
-            <div className="match-panel">
-              <div className="match-panel-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <BankIcon color="var(--deep-slate)" />
-                  <span className="match-panel-title">Open banking transactions</span>
-                  <span className="match-panel-count">{data?.bank_transactions?.length ?? 0}</span>
-                </div>
-                <input
-                  className="match-search"
-                  placeholder="Search transactions…"
-                  value={txSearch}
-                  onChange={e => setTxSearch(e.target.value)}
-                />
-              </div>
-              <div className="match-table-wrap">
-                {txs.length === 0 ? (
-                  <div className="match-empty">No transactions to show</div>
-                ) : (
-                  <table className="match-table">
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Counterparty</th>
-                        <th style={{ textAlign: 'right' }}>Amount</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {txs.map(tx => (
-                        <tr key={tx.tx_id} className="match-row" onClick={() => setModal({ item: tx, type: 'tx' })}>
-                          <td className="match-date">{fmtDate(tx.date)}</td>
-                          <td>
-                            <div className="match-party">{tx.counterparty}</div>
-                            {tx.description && <div className="match-desc">{tx.description}</div>}
-                          </td>
-                          <td style={{ textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                            {fmtAmount(tx.amount, tx.currency)}
-                          </td>
-                          <td><StatusBadge status={tx.status} panel="tx" /></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </div>
-
             {/* Accounting invoices */}
             <div className="match-panel">
               <div className="match-panel-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <GridIcon color="var(--deep-slate)" />
                   <span className="match-panel-title">Open accounting invoices</span>
-                  <span className="match-panel-count">{data?.invoices?.length ?? 0}</span>
+                  <span className="match-panel-count">{allInvs.length}</span>
                 </div>
                 <input
                   className="match-search"
@@ -313,7 +327,7 @@ export default function MatchingPage() {
                 />
               </div>
               <div className="match-table-wrap">
-                {invs.length === 0 ? (
+                {allInvs.length === 0 ? (
                   <div className="match-empty">No invoices to show</div>
                 ) : (
                   <table className="match-table">
@@ -327,15 +341,69 @@ export default function MatchingPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {invs.map(inv => (
-                        <tr key={inv.book_id} className="match-row" onClick={() => setModal({ item: inv, type: 'inv' })}>
-                          <td className="match-date">{fmtDate(inv.date)}</td>
-                          <td className="match-party">{inv.counterparty}</td>
-                          <td style={{ color: 'var(--muted)', fontSize: 13 }}>{inv.invoice_reference || inv.book_id}</td>
-                          <td style={{ textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      {filteredUnifiedRows.map(({ inv, key }) => inv ? (
+                        <tr key={key} className="match-row" style={{ height: 64 }} onClick={() => setModal({ item: inv, type: 'inv' })}>
+                          <td className="match-date" style={{ verticalAlign: 'middle' }}>{fmtDate(inv.date)}</td>
+                          <td style={{ verticalAlign: 'middle' }} className="match-party">{inv.counterparty}</td>
+                          <td style={{ color: 'var(--muted)', fontSize: 13, verticalAlign: 'middle' }}>{inv.invoice_reference || inv.book_id}</td>
+                          <td style={{ textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
                             {fmtAmount(inv.amount, inv.currency)}
                           </td>
-                          <td><StatusBadge status={inv.status} panel="inv" /></td>
+                          <td style={{ verticalAlign: 'middle' }}><StatusBadge status={inv.status} panel="inv" /></td>
+                        </tr>
+                      ) : (
+                        <tr key={key} style={{ height: 64 }}>
+                          <td colSpan={5} style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }} />
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+
+            {/* Bank transactions */}
+            <div className="match-panel">
+              <div className="match-panel-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <BankIcon color="var(--deep-slate)" />
+                  <span className="match-panel-title">Open banking transactions</span>
+                  <span className="match-panel-count">{allTxs.length}</span>
+                </div>
+                <input
+                  className="match-search"
+                  placeholder="Search transactions…"
+                  value={txSearch}
+                  onChange={e => setTxSearch(e.target.value)}
+                />
+              </div>
+              <div className="match-table-wrap">
+                {allTxs.length === 0 ? (
+                  <div className="match-empty">No transactions to show</div>
+                ) : (
+                  <table className="match-table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Counterparty</th>
+                        <th style={{ textAlign: 'right' }}>Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredUnifiedRows.map(({ tx, key }) => tx ? (
+                        <tr key={key} className="match-row" style={{ height: 64 }} onClick={() => setModal({ item: tx, type: 'tx' })}>
+                          <td className="match-date" style={{ verticalAlign: 'middle' }}>{fmtDate(tx.date)}</td>
+                          <td style={{ verticalAlign: 'middle' }}>
+                            <div className="match-party">{tx.counterparty}</div>
+                            {tx.description && <div className="match-desc">{tx.description}</div>}
+                          </td>
+                          <td style={{ textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
+                            {fmtAmount(tx.amount, tx.currency)}
+                          </td>
+                        </tr>
+                      ) : (
+                        <tr key={key} style={{ height: 64 }}>
+                          <td colSpan={3} style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }} />
                         </tr>
                       ))}
                     </tbody>
@@ -348,7 +416,19 @@ export default function MatchingPage() {
 
         <div className="inline-actions" style={{ marginTop: 28 }}>
           <a href="#risk" className="skip-link" style={{ textDecoration: 'none' }}>← Back to comparison</a>
-          <button className="btn-continue">Continue review</button>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            {!loading && !error && hasUnmatchedTx && (
+              <button
+                className="btn-secondary"
+                onClick={injectMockInvoice}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, border: '1.5px dashed var(--border)' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add mock matching invoice
+              </button>
+            )}
+            <button className="btn-continue">Continue review</button>
+          </div>
         </div>
       </main>
 

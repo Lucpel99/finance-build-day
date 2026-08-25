@@ -90,6 +90,9 @@ export default function App() {
               <span className="pill"><span>⚡</span> Decision in seconds</span>
             </div>
             <div className="inline-actions" style={{ justifyContent: 'flex-end' }}>
+              <a href="#risk" className="btn-secondary" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 7 }}>
+                Risk agent review (demo)
+              </a>
               <button className="btn-continue" onClick={resetDemo}>
                 Start over (demo)
               </button>
