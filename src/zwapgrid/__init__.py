@@ -7,6 +7,7 @@ from .claims import (
     unseen_account_signals,
 )
 from .client import ZwapgridClient, ZwapgridError, invoice_date_param
+from .events import as_book_events
 from .facts import fetch_identity, fetch_money_in, fetch_money_out
 from .models import ClaimedOnboarding, ClaimReport, IdentityFacts, MoneyFacts
 from .remittance import build_needles, needles_match_haystack
@@ -15,6 +16,7 @@ __all__ = [
     "ZwapgridClient",
     "ZwapgridError",
     "invoice_date_param",
+    "as_book_events",
     "fetch_identity",
     "fetch_money_in",
     "fetch_money_out",

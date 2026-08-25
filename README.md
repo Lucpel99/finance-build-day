@@ -66,7 +66,7 @@ pytest tests/test_zwapgrid.py::test_invalid_key_raises_zwapgrid_error -v
 
 Accounting data for onboarding verification. All reads are scoped to the connected consent.
 
-**AIS** in this repo is Luna Account Information Service (bank accounts and booked transactions). Zwapgrid does not call it. We emit identity, money-in, and money-out facts plus claim-vs-books scores. The open-banking teammate supplies AIS lists for the other two edges (claim-vs-bank, books-vs-bank).
+**AIS** in this repo is Luna Account Information Service (bank accounts and booked transactions). Zwapgrid does not import it. Identity, money-in/out, and claim-vs-books scores live in `zwapgrid`. Books-vs-bank matching lives in the shared `verification` package (imports neither SDK). Claim-vs-bank is still the open-banking lane.
 
 ### Fortnox notes
 
@@ -85,6 +85,7 @@ from zwapgrid import (
     fetch_money_in,
     fetch_money_out,
     build_claim_report,
+    as_book_events,
     needles_match_haystack,
 )
 
@@ -105,8 +106,16 @@ report = build_claim_report(
     connected_account_ids=["SE4550000000058398257466"],  # from AIS, optional
 )
 
+from luna_open_payments import as_bank_events
+from verification import match_books_to_bank
+
+books = as_book_events(money_in, money_out)
+bank, flags = as_bank_events(transactions)  # from AisService.get_transactions(..., date_from=365 days ago)
+zb = match_books_to_bank(books, bank, flags=flags)
+# Live sandboxes are different companies: expect eligible=2, matched=0
+
 # Bank-account overlap (AIS teammate): identity.bank_accounts[].normalized vs AIS iban/bban
-# Money-in hard match: row.remittance_needles vs concatenated AIS remittance
+# Remittance needles exist on cash rows but are not a Z→B gate in v1
 needles_match_haystack(money_in.rows[0].remittance_needles, "BETALNING INV-001 PAY-59")
 ```
 
@@ -121,7 +130,27 @@ Each cash row carries `cash_amount`, `currency`, `cash_date` + `cash_date_source
 | Remittance | `invoice.reference`, payment `reference`, `paymentIds` | unstructured + structured remittance, `endToEndId` |
 | Revenue claim | `incomestatement` fiscal-year series (not a rolling P&L) | inbound credit volume (teammate) |
 
-Claim scores have **agreement** and **confidence** separately. Freshness (`fresh` / `ageing` / `stale` / `dormant`) caps confidence when books are old. Under 90 days of P&L history is `insufficient_history` — do not annualize.
+Claim scores have **agreement** and **confidence** separately. Freshness (`fresh` / `ageing` / `stale` / `dormant`) caps confidence when books are old.
+
+**Yearly revenue is pick-one, not a blend.** Each income-statement period stores raw `revenue` and `annualized = revenue × 365 / days`. Scoring then chooses a single observed: last closed year (`days ≥ 300`, unannualized) if one exists; else YTD annualized; else raw YTD with `insufficient_history` when `days < 90`. Sparse invoices (`n < 5`) also cap confidence. Trailing-12-month invoice sum (`invoice_revenue`) is already a year and is not annualized. We do not blend prior year with YTD.
+
+### Books → bank (Z → B)
+
+Paid invoices should appear as a booked AIS transaction. Unmatched **bank** lines are ignored (payroll, tax, fees, transfers, PSP nets). Do not require B → Z coverage.
+
+Gates (all must hold; one-to-one):
+
+1. Exact `cash_amount` (payment sum, else tax-inclusive)
+2. Exact currency
+3. Same direction (sales → credit, supplier → debit)
+4. `|cash_date − bookingDate| ≤ 5` days (`cash_date` is paid/received/booked/settlement, not `issueDate`)
+5. Bank tx not already consumed
+
+Closest date wins; a tie is `ambiguous` and does not consume the tx. Unique-amount rows are claimed first.
+
+Live Fortnox vs Luna sandboxes are different companies. Expected result is **0/2** (`3281.25` SEK in, `2687.50` SEK out unmatched). That is a correct miss, not a fixture gap.
+
+`AisService.get_transactions` does not paginate. A 365-day pull may be truncated by the ASPSP; do not treat the list as complete. Direction mapping: `creditDebitIndicator` first; signed amounts only if the batch has a negative; unsigned all-positive txs with no indicator are skipped (`unsigned_amount_no_indicator`). Split settlements (one invoice, two bank credits) miss in v1 because we match the summed `cash_amount`.
 
 ### Raw client methods
 
@@ -399,7 +428,7 @@ for b in balances:
 
 #### `get_transactions(account_id, consent_id, bic_fi, date_from=None) -> list[Transaction]`
 
-Returns booked transactions. Optionally filter by start date (`YYYY-MM-DD`).
+Returns booked transactions. Optionally filter by start date (`YYYY-MM-DD`). Does **not** paginate — a 365-day window may be truncated by the ASPSP.
 
 ```python
 transactions = ais_service.get_transactions(
