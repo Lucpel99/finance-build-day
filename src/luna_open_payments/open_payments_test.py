@@ -246,7 +246,7 @@ for balance in balances:
 
 date_from = (
     date.today()
-    - timedelta(days=90)
+    - timedelta(days=365)
 ).isoformat()
 
 transactions = ais.get_transactions(
