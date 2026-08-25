@@ -1,25 +1,38 @@
 import uuid
+
 import httpx
 
 from .auth import TokenClient
 
-API_BASE_URLS = {
+
+_ENV_BASE_URLS = {
     "sandbox": "https://api.sandbox.openbankingplatform.com",
     "production": "https://api.openbankingplatform.com",
 }
 
 
 class APIError(Exception):
-    def __init__(self, status_code: int, body: str):
-        super().__init__(f"API error [{status_code}]: {body}")
+    def __init__(self, status_code: int, message: str):
         self.status_code = status_code
-        self.body = body
+        self.message = message
+        super().__init__(
+            f"API error [{status_code}]: {message}"
+        )
 
 
 class OpenPaymentsClient:
-    def __init__(self, token_client: TokenClient, env: str = "sandbox"):
+    def __init__(
+        self,
+        token_client: TokenClient,
+        *,
+        env: str = "sandbox",
+        timeout: float = 30.0,
+    ):
         self._token_client = token_client
-        self._base_url = API_BASE_URLS[env]
+        self._base_url = _ENV_BASE_URLS[env]
+        self._http = httpx.Client(
+            timeout=timeout
+        )
 
     def request(
         self,
@@ -30,27 +43,72 @@ class OpenPaymentsClient:
         extra_headers: dict | None = None,
         **kwargs,
     ) -> httpx.Response:
-        token = self._token_client.get_token(scope)
+
+        # Get OAuth token
+        access_token = self._token_client.get_token(scope)
+
         headers = {
-            "Authorization": f"Bearer {token}",
+            "Authorization": f"Bearer {access_token}",
             "X-Request-ID": str(uuid.uuid4()),
-            "Content-Type": "application/json",
+            "Accept": "application/json",
         }
+
         if extra_headers:
             headers.update(extra_headers)
 
-        response = httpx.request(
-            method,
-            self._base_url + path,
+        response = self._http.request(
+            method=method,
+            url=f"{self._base_url}{path}",
             headers=headers,
             **kwargs,
         )
+
         if not response.is_success:
-            raise APIError(response.status_code, response.text)
+            raise APIError(
+                response.status_code,
+                response.text,
+            )
+
         return response
 
-    def get(self, path: str, scope: str, **kwargs) -> httpx.Response:
-        return self.request("GET", path, scope, **kwargs)
+    def get(
+        self,
+        path: str,
+        scope: str,
+        **kwargs,
+    ) -> httpx.Response:
 
-    def post(self, path: str, scope: str, **kwargs) -> httpx.Response:
-        return self.request("POST", path, scope, **kwargs)
+        return self.request(
+            "GET",
+            path,
+            scope,
+            **kwargs,
+        )
+
+    def post(
+        self,
+        path: str,
+        scope: str,
+        **kwargs,
+    ) -> httpx.Response:
+
+        return self.request(
+            "POST",
+            path,
+            scope,
+            **kwargs,
+        )
+
+    def put(
+        self,
+        path: str,
+        scope: str,
+        **kwargs,
+    ) -> httpx.Response:
+
+        return self.request(
+            "PUT",
+            path,
+            scope,
+            **kwargs,
+        )
