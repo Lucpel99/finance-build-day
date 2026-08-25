@@ -1,0 +1,17 @@
+{
+  "id": "SUP-01",
+  "reference": "ZG-SEED-ACME-SUP-01",
+  "issueDate": "2026-08-25",
+  "dueDate": "2026-09-24",
+  "accountingSupplierParty": {
+    "party": {
+      "partyName": { "name": "Cloudlane Systems AB - Seed" }
+    }
+  },
+  "legalMonetaryTotal": {
+    "taxInclusiveAmount": { "amount": 2687.50, "currencyId": "SEK" },
+    "payableAmount": { "amount": 0, "currencyId": "SEK" }
+  },
+  "totalBalanceAmount": { "amount": 0, "currencyId": "SEK" },
+  "paymentStatus": { "status": "FULLY_PAID", "settlementDate": "2026-08-25" }
+}

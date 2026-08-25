@@ -1,0 +1,17 @@
+{
+  "id": "INV-001",
+  "reference": "INV-001",
+  "dueDate": "2024-04-15",
+  "issueDate": "2024-03-15",
+  "accountingCustomerParty": {
+    "party": {
+      "partyName": { "name": "Acme Corp", "languageId": "ENG" }
+    }
+  },
+  "legalMonetaryTotal": {
+    "taxInclusiveAmount": { "amount": 1250, "currencyId": "SEK" },
+    "payableAmount": { "amount": 1250, "currencyId": "SEK" }
+  },
+  "totalBalanceAmount": { "amount": 1250, "currencyId": "SEK" },
+  "paymentStatus": { "status": "UNPAID" }
+}

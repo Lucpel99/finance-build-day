@@ -1,0 +1,18 @@
+{
+  "id": "1",
+  "reference": "1",
+  "issueDate": "2026-08-25",
+  "dueDate": "2026-09-24",
+  "isSent": true,
+  "accountingCustomerParty": {
+    "party": {
+      "partyName": { "name": "Nordic Retail Group AB - Seed" }
+    }
+  },
+  "legalMonetaryTotal": {
+    "taxInclusiveAmount": { "amount": 3281.00, "currencyId": "SEK" },
+    "payableAmount": { "amount": -0.25, "currencyId": "SEK" }
+  },
+  "totalBalanceAmount": { "amount": -0.25, "currencyId": "SEK" },
+  "paymentStatus": { "status": "FULLY_PAID", "settlementDate": "2026-08-25" }
+}

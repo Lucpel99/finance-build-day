@@ -1,0 +1,8 @@
+{
+  "transactionId": "tx-pay-59",
+  "bookingDate": "2022-06-02",
+  "valueDate": "2022-06-01",
+  "transactionAmount": { "currency": "DKK", "amount": "500.00" },
+  "debtorName": "Acme Corp",
+  "remittanceInformationUnstructured": "BETALNING INV-001 PAY-59"
+}

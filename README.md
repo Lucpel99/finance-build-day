@@ -3,7 +3,7 @@
 Two financial API integrations in one repo, ready to use as Python packages:
 
 - **Luna Open Payments** — PSD2 open banking (account info, payment initiation, bank discovery)
-- **Zwapgrid** — Accounting/ERP API (company information)
+- **Zwapgrid** — Accounting/ERP API (identity, statements, invoices, payments)
 
 ---
 
@@ -64,7 +64,83 @@ pytest tests/test_zwapgrid.py::test_invalid_key_raises_zwapgrid_error -v
 
 ## Zwapgrid
 
-Retrieves company information from the Zwapgrid Accounting API.
+Accounting data for onboarding verification. All reads are scoped to the connected consent.
+
+**AIS** in this repo is Luna Account Information Service (bank accounts and booked transactions). Zwapgrid does not call it. We emit identity, money-in, and money-out facts plus claim-vs-books scores. The open-banking teammate supplies AIS lists for the other two edges (claim-vs-bank, books-vs-bank).
+
+### Fortnox notes
+
+Invoice date filters must be `yyyy-MM-dd`. ISO datetimes (`2025-08-25T00:00:00Z`) return Fortnox `2000302`. `list_sales_invoices` / `list_supplier_invoices` coerce dates automatically. Do **not** send `OrderBy` on supplier invoices (HTTP 501); the client drops it.
+
+A 12-month window is requested on every list call; `meta.totalResources` / `totalPages` tell you whether the page set is complete. Seed consents may only have one invoice of each type.
+
+### Verification entry points
+
+```python
+from datetime import date
+from zwapgrid import (
+    ZwapgridClient,
+    ClaimedOnboarding,
+    fetch_identity,
+    fetch_money_in,
+    fetch_money_out,
+    build_claim_report,
+    needles_match_haystack,
+)
+
+client = ZwapgridClient.from_env()
+identity = fetch_identity(client)
+money_in = fetch_money_in(client, lookback_days=365)
+money_out = fetch_money_out(client, lookback_days=365)
+report = build_claim_report(
+    client,
+    ClaimedOnboarding(
+        yearly_revenue=2_400_000,
+        average_transaction=8_000,
+        max_transaction=80_000,
+    ),
+    money_in,
+    money_out,
+    identity,
+    connected_account_ids=["SE4550000000058398257466"],  # from AIS, optional
+)
+
+# Bank-account overlap (AIS teammate): identity.bank_accounts[].normalized vs AIS iban/bban
+# Money-in hard match: row.remittance_needles vs concatenated AIS remittance
+needles_match_haystack(money_in.rows[0].remittance_needles, "BETALNING INV-001 PAY-59")
+```
+
+Each cash row carries `cash_amount`, `currency`, `cash_date` + `cash_date_source`, `normalized_counterparty`, `amount_unique_in_window`, `remittance_needles`. Paid leftover rounding (`-0.25` remaining with `FULLY_PAID`) is ignored; cash amount is the payment or the tax-inclusive total.
+
+| Compare | Zwapgrid fields | AIS fields |
+|---------|-----------------|------------|
+| Legal identity | `legal_name`, `organization_number` (`SE:ORGNR`), address | UI form (AIS has no orgnr) |
+| Bank accounts | `paymentMeans.financialAccount.id` | `Account.iban` / `bban` |
+| Money in | sales invoices + `/salesinvoices/{id}/payments` | inbound credits |
+| Money out | supplier invoices + `/supplierinvoices/{id}/payments` | debits (`creditDebitIndicator=DBIT`) |
+| Remittance | `invoice.reference`, payment `reference`, `paymentIds` | unstructured + structured remittance, `endToEndId` |
+| Revenue claim | `incomestatement` fiscal-year series (not a rolling P&L) | inbound credit volume (teammate) |
+
+Claim scores have **agreement** and **confidence** separately. Freshness (`fresh` / `ageing` / `stale` / `dormant`) caps confidence when books are old. Under 90 days of P&L history is `insufficient_history` — do not annualize.
+
+### Raw client methods
+
+| Method | Endpoint | What we derive |
+|--------|----------|----------------|
+| `get_company_information()` | `GET /companyinformation` | Legal/accounting identity |
+| `get_income_statement()` | `GET /incomestatement` | Revenue, expenses, profit |
+| `get_balance_sheet()` | `GET /balancesheet` | Assets, liabilities, equity |
+| `get_trial_balances()` | `GET /trialbalances` (v2) | Underlying ledger balances |
+| `list_sales_invoices()` / `iter_sales_invoices()` | `GET /salesinvoices` | Trading activity (paged) |
+| `get_sales_invoice(id)` | `GET /salesinvoices/{id}` | Full invoice (OCR / paymentMeans) |
+| `list_sales_invoice_payments_for_invoice(id)` | `GET /salesinvoices/{id}/payments` | Paid receivables for one invoice |
+| `list_sales_invoice_payments()` | `GET /salesinvoices/payments` | All sales payments |
+| `list_supplier_invoices()` / `iter_supplier_invoices()` | `GET /supplierinvoices` | Cost/business activity |
+| `get_supplier_invoice(id)` | `GET /supplierinvoices/{id}` | Full supplier invoice |
+| `list_supplier_invoice_payments_for_invoice(id)` | `GET /supplierinvoices/{id}/payments` | Payments we made |
+| `list_supplier_invoice_payments()` | `GET /supplierinvoices/payments` | All supplier payments |
+
+Invoice `FromInvoiceDate` / `ToInvoiceDate` filter **`issueDate`**, not payment date. Max 100 rows per page.
 
 ### Initialisation
 
@@ -82,15 +158,89 @@ client = ZwapgridClient(api_key="...", consent_id="...")
 
 #### `get_company_information() -> dict`
 
-Returns the company information associated with the consent.
+Legal/accounting identity for the connected company.
 
 ```python
 info = client.get_company_information()
-print(info)
-# {"companyName": "Acme AB", "organizationNumber": "5591234567", ...}
 ```
 
-**Endpoint:** `GET https://apione.zwapgrid.com/accounting/api/v1/consents/{consent_id}/companyinformation`
+**Endpoint:** `GET /accounting/api/v1/consents/{consent_id}/companyinformation`
+
+#### `get_income_statement(*, start_date=None, end_date=None, level=None) -> dict`
+
+Revenue, expenses, and profit. Dates are ISO 8601 (`yyyy-MM-ddTHH:mm:ssZ`). If `start_date` is omitted, Zwapgrid defaults to the start of the current fiscal year. `level` is heading depth 1–5.
+
+```python
+pnl = client.get_income_statement(start_date="2026-01-01T00:00:00Z")
+```
+
+**Endpoint:** `GET /accounting/api/v1/consents/{consent_id}/incomestatement`
+
+#### `get_balance_sheet(*, end_date=None, level=None) -> dict`
+
+Assets, liabilities, and equity at a point in time.
+
+```python
+sheet = client.get_balance_sheet(end_date="2026-08-25T00:00:00Z")
+```
+
+**Endpoint:** `GET /accounting/api/v1/consents/{consent_id}/balancesheet`
+
+#### `get_trial_balances(*, start_date=None, end_date=None, level=None) -> dict`
+
+Underlying ledger balances (trial balance v2). Dates are `yyyy-MM-dd`. Fortnox allows at most 6 months between `StartDate` and `EndDate`.
+
+```python
+tb = client.get_trial_balances(start_date="2026-01-01", end_date="2026-08-25")
+```
+
+**Endpoint:** `GET /accounting/api/v2/consents/{consent_id}/trialbalances`
+
+#### `list_sales_invoices(*, count=None, current_page=None, from_invoice_date=None, to_invoice_date=None, status=None, order_by=None, include=None) -> dict`
+
+Issued sales invoices (trading activity). Paginated (`data` + `meta`).
+
+`status`: `Paid`, `Unpaid`, `Overdue`, `Cancelled`, `Unbooked`, `Unsent`, `Draft`.  
+`order_by`: `DateDescending` or `DateAscending`.  
+`include`: e.g. `"paymentStatus"`.
+
+```python
+invoices = client.list_sales_invoices(count=50, include="paymentStatus")
+```
+
+**Endpoint:** `GET /accounting/api/v1/consents/{consent_id}/salesinvoices`
+
+#### `list_sales_invoice_payments() -> dict`
+
+Paid receivables across sales invoices. Paginated.
+
+```python
+payments = client.list_sales_invoice_payments()
+```
+
+**Endpoint:** `GET /accounting/api/v1/consents/{consent_id}/salesinvoices/payments`
+
+#### `list_supplier_invoices(*, count=None, current_page=None, from_invoice_date=None, to_invoice_date=None, status=None, order_by=None, include=None) -> dict`
+
+Supplier invoices (cost / business activity). Paginated.
+
+`status`: `IsSold`, `Paid`, `Unpaid`, `Overdue`, `Cancelled`, `Unsent`.
+
+```python
+bills = client.list_supplier_invoices(count=50, include="paymentStatus")
+```
+
+**Endpoint:** `GET /accounting/api/v1/consents/{consent_id}/supplierinvoices`
+
+#### `list_supplier_invoice_payments() -> dict`
+
+Supplier-payment behaviour across supplier invoices. Paginated.
+
+```python
+supplier_payments = client.list_supplier_invoice_payments()
+```
+
+**Endpoint:** `GET /accounting/api/v1/consents/{consent_id}/supplierinvoices/payments`
 
 ### Error handling
 

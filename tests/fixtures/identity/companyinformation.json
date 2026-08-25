@@ -1,0 +1,31 @@
+{
+  "partyName": { "name": "Nordic Retail Group AB - Seed" },
+  "partyLegalEntity": {
+    "registrationName": "Nordic Retail Group AB",
+    "companyId": { "id": "559123-4567", "schemeId": "SE:ORGNR" }
+  },
+  "partyIdentification": [
+    { "id": "559123-4567", "schemeId": "SE:ORGNR" }
+  ],
+  "postalAddress": {
+    "streetName": "Kungsgatan",
+    "buildingNumber": "1",
+    "cityName": "Stockholm",
+    "postalZone": "11143",
+    "country": { "identificationCode": "SE", "name": "Sweden" }
+  },
+  "paymentMeans": [
+    {
+      "financialAccount": {
+        "id": "SE4550000000058398257466",
+        "financialInstitution": "SEB"
+      }
+    },
+    {
+      "financialAccount": {
+        "id": "5233",
+        "financialInstitution": "Ledger"
+      }
+    }
+  ]
+}

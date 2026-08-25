@@ -1,0 +1,32 @@
+{
+  "meta": {
+    "totalResources": 1,
+    "totalPages": 1,
+    "currentPage": 1
+  },
+  "data": [
+    {
+      "id": "59",
+      "paymentId": "59",
+      "reference": "PAY-59",
+      "receivedDate": "2022-06-01",
+      "paidDate": "2022-06-01",
+      "bookedIndicator": true,
+      "bookedDate": "2022-06-02",
+      "accountingAccount": {
+        "id": "5233",
+        "reference": "5233",
+        "name": "Bank account"
+      },
+      "billingReferences": [
+        {
+          "invoiceDocumentReferences": [
+            { "id": "INV-001", "schemeId": "invoiceId" }
+          ]
+        }
+      ],
+      "documentCurrencyCode": { "currency": "DKK", "currencyId": "DKK" },
+      "amount": 500
+    }
+  ]
+}
