@@ -27,23 +27,27 @@ function CloseIcon() {
   )
 }
 
-function StatusBadge({ status }) {
-  const styles = {
-    matched:   { background: '#DCFCE7', color: '#16A34A' },
-    unmatched: { background: '#FEF3C7', color: '#D97706' },
-    ambiguous: { background: '#EFF6FF', color: '#3B82F6' },
+// panel = 'tx' | 'inv' — drives how unmatched reads
+function StatusBadge({ status, panel }) {
+  const cfg = {
+    matched:        { bg: '#DCFCE7', color: '#16A34A', label: 'Matched',          icon: true  },
+    ambiguous:      { bg: '#EFF6FF', color: '#3B82F6', label: 'Ambiguous',        icon: false },
+    // invoices: unmatched is a warning; transactions: unmatched is neutral/expected
+    unmatched_inv:  { bg: '#FEF3C7', color: '#D97706', label: 'Missing payment',  icon: false },
+    unmatched_tx:   { bg: 'var(--bg)', color: 'var(--muted)', label: 'No invoice', icon: false },
   }
-  const labels = { matched: 'Matched', unmatched: 'No match', ambiguous: 'Ambiguous' }
-  const s = styles[status] || styles.unmatched
+  const key = status === 'unmatched' ? (panel === 'inv' ? 'unmatched_inv' : 'unmatched_tx') : status
+  const { bg, color, label, icon } = cfg[key] || cfg.unmatched_inv
   return (
     <span style={{
-      ...s,
+      background: bg, color,
       fontSize: 11, fontWeight: 700, padding: '3px 10px',
       borderRadius: 999, letterSpacing: '0.04em', whiteSpace: 'nowrap',
       display: 'inline-flex', alignItems: 'center', gap: 4,
+      border: key === 'unmatched_tx' ? '1px solid var(--border)' : 'none',
     }}>
-      {status === 'matched' && <MatchIcon />}
-      {labels[status] || status}
+      {icon && <MatchIcon />}
+      {label}
     </span>
   )
 }
@@ -124,11 +128,19 @@ function DetailModal({ item, type, onClose }) {
           </div>
         )}
 
-        {item.status === 'unmatched' && (
+        {item.status === 'unmatched' && isTx && (
+          <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginBottom: 4 }}>No invoice</p>
+            <p style={{ fontSize: 13, color: 'var(--muted)' }}>
+              This bank transaction has no corresponding invoice — this is normal and does not require action.
+            </p>
+          </div>
+        )}
+        {item.status === 'unmatched' && !isTx && (
           <div style={{ background: '#FEF3C7', borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: '#D97706', marginBottom: 4 }}>No automatic match found</p>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#D97706', marginBottom: 4 }}>Missing payment</p>
             <p style={{ fontSize: 13, color: 'var(--deep-slate)' }}>
-              No {isTx ? 'invoice' : 'bank transaction'} was found with matching amount, currency, and date within the 5-day grace window.
+              No bank transaction was found matching this invoice by amount, currency, and date (±5 days). This may indicate the payment hasn't been received or is recorded under a different reference.
             </p>
           </div>
         )}
@@ -181,7 +193,7 @@ export default function MatchingPage() {
       <main className="match-main fade-in">
         <h1 className="page-title" style={{ textAlign: 'left' }}>Transaction &amp; invoice matching</h1>
         <p className="subtitle" style={{ textAlign: 'left', marginTop: 8 }}>
-          Compare open banking transactions with open accounting invoices and review unmatched items from the API results.
+          Every invoice should have a matching bank transaction. Not every bank transaction needs an invoice — only unmatched invoices require attention.
         </p>
 
         {/* Summary chips */}
@@ -196,9 +208,9 @@ export default function MatchingPage() {
           <div className="risk-stat-chip">
             <span className="risk-stat-icon"><MatchIcon /></span>
             <div>
-              <div className="risk-stat-label">Automatic matches</div>
-              <div className={`risk-stat-value ${loading ? '' : summary.matched > 0 ? 'ok' : 'warn'}`}>
-                {loading ? '…' : summary.matched}
+              <div className="risk-stat-label">Unmatched invoices</div>
+              <div className={`risk-stat-value ${loading ? '' : summary.unmatched > 0 ? 'warn' : 'ok'}`}>
+                {loading ? '…' : summary.unmatched}
               </div>
             </div>
           </div>
@@ -218,8 +230,8 @@ export default function MatchingPage() {
         {/* No-match banner */}
         {noMatches && (
           <div className="match-banner fade-in">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            No automatic matches were found. All transactions and invoices are available for manual review.
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            No invoices could be automatically matched to a bank transaction. Bank transactions without invoices are shown for reference but are not flagged as issues.
           </div>
         )}
 
@@ -276,7 +288,7 @@ export default function MatchingPage() {
                           <td style={{ textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>
                             {fmtAmount(tx.amount, tx.currency)}
                           </td>
-                          <td><StatusBadge status={tx.status} /></td>
+                          <td><StatusBadge status={tx.status} panel="tx" /></td>
                         </tr>
                       ))}
                     </tbody>
@@ -323,7 +335,7 @@ export default function MatchingPage() {
                           <td style={{ textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>
                             {fmtAmount(inv.amount, inv.currency)}
                           </td>
-                          <td><StatusBadge status={inv.status} /></td>
+                          <td><StatusBadge status={inv.status} panel="inv" /></td>
                         </tr>
                       ))}
                     </tbody>
